@@ -55,6 +55,7 @@ Point it at an official catalog PDF you have (acikpoz ships the parser, **not** 
 ```
 acikpoz parse bf2026.pdf --pages 8-20
 acikpoz parse bf2026.pdf --json > pozes.jsonl     # one poz per line, for pipelines
+acikpoz parse bf2026.pdf --csv pozes.csv          # Excel-ready (utf-8-sig, Turkish text)
 acikpoz parse bf2026.pdf --group 25               # only Sıhhi Tesisat pozes
 acikpoz parse bf2026.pdf --priced-only            # drop headers and gaps
 ```

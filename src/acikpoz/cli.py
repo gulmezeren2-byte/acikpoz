@@ -11,6 +11,7 @@ poz with no printed price stays price-less, and the count of such gaps is shown.
 from __future__ import annotations
 
 import contextlib
+import csv
 import json
 import sys
 from pathlib import Path
@@ -76,6 +77,10 @@ def parse(
         None, "--group", help="Only pozes in this main group, e.g. 25 (Sıhhi Tesisat)."
     ),
     as_json: bool = typer.Option(False, "--json", help="Emit pozes as JSONL."),
+    csv_out: Path = typer.Option(
+        None, "--csv", metavar="FILE.csv",
+        help="Write pozes to a CSV file (utf-8-sig, ready for Excel with Turkish text).",
+    ),
     priced_only: bool = typer.Option(
         False, "--priced-only", help="Only pozes that carry a printed price."
     ),
@@ -100,6 +105,21 @@ def parse(
         pozes = [p for p in pozes if p.grup == group]
     if priced_only:
         pozes = [p for p in pozes if p.is_priced]
+
+    if csv_out is not None:
+        # utf-8-sig so Excel opens Turkish characters correctly out of the box.
+        with csv_out.open("w", encoding="utf-8-sig", newline="") as fh:
+            writer = csv.writer(fh)
+            writer.writerow(["poz_no", "grup", "tanim", "birim", "fiyat", "is_group_header"])
+            for p in pozes:
+                writer.writerow(
+                    [
+                        p.poz_no, p.grup, p.tanim, p.birim or "",
+                        "" if p.fiyat is None else p.fiyat, p.is_group_header,
+                    ]
+                )
+        _console.print(f"wrote {csv_out} — {len(pozes)} poz(es)")
+        return
 
     if as_json:
         for p in pozes:

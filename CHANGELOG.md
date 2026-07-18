@@ -25,8 +25,10 @@ First public release.
   joins two catalog years by poz code and classifies each change — price move
   (Δ, %Δ), added/removed poz, unit change, gained/lost price — with the mean price
   %-change. The rate movement a single catalog can't show.
+- **CSV export**: `acikpoz parse --csv pozes.csv` writes utf-8-sig so Excel opens
+  Turkish text correctly out of the box — the format estimators actually work in.
 - `Poz` model, `parse_words` / `parse_page` / `parse_catalog` / `diff_pozes` API,
-  a CLI (`parse`, `diff`, `--json`), and an optional MCP server
+  a CLI (`parse`, `diff`, `--json`, `--csv`), and an optional MCP server
   (`pip install 'acikpoz[mcp]'`, `acikpoz-mcp`) exposing `parse_catalog` and `diff`
   as agent tools.
 - Hardened parsing: malformed/encrypted/non-PDF files fail as one clear
