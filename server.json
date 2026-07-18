@@ -1,0 +1,19 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.gulmezeren2-byte/acikpoz",
+  "title": "acikpoz",
+  "description": "Turkish public construction unit-price (birim fiyat) catalog PDFs into structured pozes",
+  "repository": {
+    "url": "https://github.com/gulmezeren2-byte/acikpoz",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "acikpoz",
+      "version": "0.1.0",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}
