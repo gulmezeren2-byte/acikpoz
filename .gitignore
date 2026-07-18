@@ -1,0 +1,20 @@
+# Source catalog PDFs are NEVER committed — acikpoz ships the parser, not the
+# data. Point it at your own official ÇŞB catalog.
+*.pdf
+*.PDF
+
+# Scratch / temporary verification scripts
+tmp_*.py
+
+# Python / tooling
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
