@@ -86,7 +86,11 @@ def parse(
         _err.print(f"[bold red]error:[/bold red] bad --pages {pages!r} (use e.g. 8-20).")
         raise typer.Exit(2) from None
 
-    result = parse_catalog(pdf, pages=page_range)
+    try:
+        result = parse_catalog(pdf, pages=page_range)
+    except ValueError as exc:  # malformed / encrypted / non-PDF file
+        _err.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(2) from exc
     pozes = [p for p in result.pozes if p.is_priced] if priced_only else result.pozes
 
     if as_json:

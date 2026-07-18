@@ -4,10 +4,13 @@ the geometry logic is verified without a PDF. Covers the two-price-column trap
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
+import pytest
+
 from acikpoz.model import Poz
-from acikpoz.parser import ParseResult, parse_words, tl
+from acikpoz.parser import ParseResult, parse_catalog, parse_words, tl
 
 
 def w(text: str, x0: float, top: float) -> dict[str, Any]:
@@ -28,6 +31,25 @@ def test_tl_turkish_money() -> None:
     assert tl("") is None
     assert tl(None) is None
     assert tl("not a number") is None
+
+
+def test_tl_rejects_non_finite() -> None:
+    # float() would happily accept these; a price must never be inf/nan.
+    assert tl("inf") is None
+    assert tl("Infinity") is None
+    assert tl("nan") is None
+
+
+def test_parse_catalog_missing_file() -> None:
+    with pytest.raises(FileNotFoundError):
+        parse_catalog("does-not-exist.pdf")
+
+
+def test_parse_catalog_rejects_non_pdf(tmp_path: Path) -> None:
+    bad = tmp_path / "not-really.pdf"
+    bad.write_text("this is plain text, not a PDF", encoding="utf-8")
+    with pytest.raises(ValueError, match="Could not read"):
+        parse_catalog(bad)
 
 
 def test_single_priced_poz() -> None:

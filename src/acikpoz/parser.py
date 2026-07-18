@@ -22,6 +22,7 @@ are thin pdfplumber wrappers.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -75,13 +76,17 @@ class ParseResult:
 
 
 def tl(s: str | None) -> float | None:
-    """Turkish-format money string -> float. '1.310,00' -> 1310.0. None-safe."""
+    """Turkish-format money string -> float. '1.310,00' -> 1310.0. None-safe.
+
+    Rejects non-finite results (inf/nan): a catalog prints finite prices, and a
+    price used in a cost total must never be inf or nan."""
     if not s:
         return None
     try:
-        return float(s.replace(".", "").replace(",", "."))
+        value = float(s.replace(".", "").replace(",", "."))
     except (ValueError, AttributeError):
         return None
+    return value if math.isfinite(value) else None
 
 
 def _group_rows(words: list[dict[str, Any]]) -> list[list[dict[str, Any]]]:
@@ -196,10 +201,18 @@ def parse_catalog(path: str | Path, pages: range | list[int] | None = None) -> P
         raise FileNotFoundError(f"Catalog PDF not found: {p}")
 
     result = ParseResult()
-    with pdfplumber.open(str(p)) as pdf:
-        indices = list(pages) if pages is not None else range(len(pdf.pages))
-        for i in indices:
-            if 0 <= i < len(pdf.pages):
-                result.pozes.extend(parse_page(pdf.pages[i]))
-                result.pages_read += 1
+    try:
+        with pdfplumber.open(str(p)) as pdf:
+            indices = list(pages) if pages is not None else range(len(pdf.pages))
+            for i in indices:
+                if 0 <= i < len(pdf.pages):
+                    result.pozes.extend(parse_page(pdf.pages[i]))
+                    result.pages_read += 1
+    except FileNotFoundError:
+        raise
+    except Exception as exc:
+        # A malformed, encrypted or non-PDF file makes pdfminer/pdfplumber raise
+        # a variety of errors; turn them into one clear ValueError so a caller
+        # (or the MCP server) fails gracefully instead of crashing.
+        raise ValueError(f"Could not read {p.name} as a PDF: {exc}") from exc
     return result
