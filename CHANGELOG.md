@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.2.0 — 2026-07-18
+
+- **Validation** (`acikpoz validate`, and a `validate` MCP tool): deterministic
+  quality rules over parsed pozes — duplicate poz codes, malformed codes,
+  non-positive prices, priced pozes with no unit, and units outside the known set.
+  Findings carry a severity (error/warning); `validate` exits non-zero on any error,
+  so it can gate a pipeline. A rule-based check that catches parse/OCR slips without
+  ML, and never fixes or invents anything — it only surfaces.
+- Inline **"(Ölçü: X)"** units in a description are now read as authoritative, since
+  some sections (Sıhhi Tesisat) print the unit inline rather than in a column.
+- Known limitation, surfaced honestly: in sections where the unit is *inherited*
+  from a group header rather than printed on each row, per-row unit detection is
+  weak — `validate` flags those rows as `unusual_unit`/`priced_without_unit`.
+  Price, poz code and description remain reliable; unit inheritance is planned.
+
 ## 0.1.0 — 2026-07-18
 
 First public release.

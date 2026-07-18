@@ -23,6 +23,7 @@ from rich.table import Table
 import acikpoz as _acikpoz
 from acikpoz.diff import diff_pozes
 from acikpoz.parser import parse_catalog
+from acikpoz.validate import validate_pozes
 
 app = typer.Typer(
     add_completion=False,
@@ -201,6 +202,54 @@ def diff(
         f"{result.count('added')} added · {result.count('removed')} removed · "
         f"{result.count('unit_change')} unit changes · {old_pdf.name} → {new_pdf.name}.[/dim]"
     )
+
+
+@app.command()
+def validate(
+    pdf: Path = typer.Argument(..., help="A ÇŞB birim-fiyat catalog PDF."),
+    pages: str = typer.Option(None, "--pages", help="0-based page range, e.g. 8-20."),
+    as_json: bool = typer.Option(False, "--json", help="Emit the report as JSON."),
+) -> None:
+    """Validate parsed pozes: duplicate/malformed codes, non-positive prices, odd units.
+
+    Exits non-zero if any error-severity finding is present, so it can gate a pipeline.
+    """
+    if not pdf.is_file():
+        _err.print(f"[bold red]error:[/bold red] file not found: {pdf}")
+        raise typer.Exit(2)
+    try:
+        page_range = _parse_pages(pages)
+    except ValueError:
+        _err.print(f"[bold red]error:[/bold red] bad --pages {pages!r} (use e.g. 8-20).")
+        raise typer.Exit(2) from None
+    try:
+        result = parse_catalog(pdf, pages=page_range)
+    except ValueError as exc:
+        _err.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(2) from exc
+
+    report = validate_pozes(result.pozes)
+    if as_json:
+        typer.echo(json.dumps(report.to_dict(), ensure_ascii=True, indent=2))
+        raise typer.Exit(0 if report.ok else 1)
+
+    if not report.findings:
+        _console.print(f"[green]OK[/green] — {report.checked} poz(es) validated, no issues.")
+        return
+    table = Table(title="Validation findings", title_justify="left")
+    table.add_column("severity")
+    table.add_column("rule")
+    table.add_column("poz")
+    table.add_column("message", overflow="fold")
+    for f in report.findings[:200]:
+        colour = "red" if f.severity == "error" else "yellow"
+        table.add_row(f"[{colour}]{f.severity}[/]", f.rule, f.poz_no, f.message)
+    _console.print(table)
+    _console.print(
+        f"[dim]{report.errors} error(s), {report.warnings} warning(s) "
+        f"over {report.checked} poz(es).[/dim]"
+    )
+    raise typer.Exit(0 if report.ok else 1)
 
 
 def main() -> None:

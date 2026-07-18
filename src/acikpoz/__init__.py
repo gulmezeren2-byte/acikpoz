@@ -15,6 +15,7 @@ from importlib.metadata import PackageNotFoundError, version
 from acikpoz.diff import CatalogDiff, PozChange, diff_pozes
 from acikpoz.model import Poz
 from acikpoz.parser import ParseResult, parse_catalog, parse_page, parse_words, tl
+from acikpoz.validate import Finding, ValidationReport, validate_pozes
 
 try:
     # Single source of truth: the installed distribution version.
@@ -32,5 +33,8 @@ __all__ = [
     "CatalogDiff",
     "PozChange",
     "diff_pozes",
+    "Finding",
+    "ValidationReport",
+    "validate_pozes",
     "__version__",
 ]

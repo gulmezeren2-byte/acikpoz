@@ -118,13 +118,30 @@ It reports price moves (with Δ and %Δ), added and removed pozes, unit changes,
 that gained or lost a printed price — plus the **mean price %-change** for the year. As far
 as the research found, no other open tool does year-over-year diffing for ÇŞB catalogs.
 
+## Validate a parse
+
+Before a parsed catalog feeds a cost estimate, it helps to know it is clean. `acikpoz
+validate` runs deterministic quality rules over the pozes — no ML, no fixing, only surfacing:
+
+```
+acikpoz validate bf2026.pdf --pages 8-400
+acikpoz validate bf2026.pdf --json
+```
+
+It flags duplicate poz codes, malformed codes, non-positive prices (**errors**), and priced
+pozes with no unit or a unit outside the known set (**warnings**). It exits non-zero on any
+error, so it can gate a pipeline (`acikpoz validate … && build-estimate`). This is also how
+acikpoz stays honest about its own limits: in sections that print the unit once on a group
+header and let the rows inherit it (Sıhhi Tesisat), per-row unit detection is weak, and
+`validate` says so rather than hiding it. Price, poz code and description stay reliable.
+
 ## Using acikpoz with AI agents
 
-An MCP server (`pip install 'acikpoz[mcp]'`, then `acikpoz-mcp`) exposes two tools:
-`parse_catalog` (a PDF → structured pozes with honest coverage) and `diff` (two catalog years
-→ classified changes). The agent gets structured data back, not prose it has to parse. Pair
-it with ihalent and an agent can reason across both a tender's result *and* the unit prices
-it was measured against.
+An MCP server (`pip install 'acikpoz[mcp]'`, then `acikpoz-mcp`) exposes three tools:
+`parse_catalog` (a PDF → structured pozes with honest coverage), `diff` (two catalog years
+→ classified changes), and `validate` (a PDF → quality findings). The agent gets structured
+data back, not prose it has to parse. Pair it with ihalent and an agent can reason across
+both a tender's result *and* the unit prices it was measured against.
 
 ```jsonc
 // e.g. Claude Desktop / Claude Code mcp config

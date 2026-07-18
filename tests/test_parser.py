@@ -104,6 +104,17 @@ def test_multiline_description_and_spilled_price() -> None:
     assert pozes[0].fiyat == 434.05
 
 
+def test_inline_olcu_is_authoritative_unit() -> None:
+    # Sıhhi Tesisat prints the unit inline: "(Ölçü: Tk.)" — trust it over columns.
+    words = HEADER + [
+        w("25.114.1000", 45, 30), w("PİSUVAR (Ölçü: Tk.) tesisatı", 100, 30),
+        w("50,00", 535, 30),
+    ]
+    pozes = parse_words(words)
+    assert pozes[0].birim == "Tk"
+    assert pozes[0].fiyat == 50.0
+
+
 def test_no_header_leaves_prices_none() -> None:
     # Without a discoverable price column, we do not guess a price.
     words = [w("15.100.1003", 45, 30), w("bir iş", 100, 30), w("54,88", 535, 30)]

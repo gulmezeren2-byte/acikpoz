@@ -32,6 +32,9 @@ from acikpoz.model import Poz
 
 POZ_RE = re.compile(r"^\d{2}\.\d{3}\.\d{4}$")
 PRICE_RE = re.compile(r"^\d{1,3}(\.\d{3})*,\d{2}$")
+# Some sections (e.g. Sıhhi Tesisat) print the unit inline in the description as
+# "(Ölçü: Ad.)" rather than in a column. When present, it is authoritative.
+_OLCU_RE = re.compile(r"\(\s*Ölçü\s*:\s*([^)]+?)\s*\)", re.IGNORECASE)
 
 _ROW_TOL = 3.0  # points; words within this vertical band are one visual row
 _POZ_MAX_X = 70.0  # a poz-code cell sits in the left margin
@@ -203,8 +206,17 @@ def _split_desc_unit(cells: list[dict[str, Any]], px: float | None) -> tuple[str
 
 
 def _finalize(p: Poz) -> Poz:
-    """A price-less poz whose description ends in ':' is a category title (a
-    group header), priced None by design — not a data gap."""
+    """Two finishing touches:
+    * An inline "(Ölçü: X)" in the description is the authoritative unit — trust it
+      over the column-guessed one, which is unreliable in sections that print the
+      unit inline rather than in a column.
+    * A price-less poz whose description ends in ':' is a category title (a group
+      header), priced None by design — not a data gap."""
+    m = _OLCU_RE.search(p.tanim)
+    if m:
+        unit = m.group(1).strip().rstrip(".").strip()
+        if unit:
+            p.birim = unit
     if p.fiyat is None and p.tanim.rstrip().endswith(":"):
         p.is_group_header = True
     return p

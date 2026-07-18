@@ -16,6 +16,7 @@ from typing import Any
 
 from acikpoz.diff import diff_pozes
 from acikpoz.parser import parse_catalog
+from acikpoz.validate import validate_pozes
 
 
 def _pages(spec: str | None) -> range | None:
@@ -67,7 +68,20 @@ def tool_diff(
     return diff_pozes(old.pozes, new.pozes, tolerance=tolerance).to_dict()
 
 
-TOOLS = [tool_parse_catalog, tool_diff]
+def tool_validate(pdf_path: str, pages: str | None = None) -> dict[str, Any]:
+    """Validate a parsed ÇŞB catalog against deterministic quality rules: duplicate
+    poz codes, malformed codes, non-positive prices, priced pozes with no unit, and
+    units outside the known set. Returns findings with severity (error/warning) and
+    an `ok` flag — a rule-based check that catches parse/OCR slips without ML, never
+    fixing or inventing anything."""
+    try:
+        result = parse_catalog(pdf_path, pages=_pages(pages))
+    except (FileNotFoundError, ValueError) as exc:
+        return {"error": str(exc)}
+    return validate_pozes(result.pozes).to_dict()
+
+
+TOOLS = [tool_parse_catalog, tool_diff, tool_validate]
 
 
 def build_server() -> Any:
