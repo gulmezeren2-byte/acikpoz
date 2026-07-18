@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from acikpoz.diff import diff_pozes
 from acikpoz.parser import parse_catalog
 
 
@@ -46,7 +47,27 @@ def tool_parse_catalog(
     return data
 
 
-TOOLS = [tool_parse_catalog]
+def tool_diff(
+    old_pdf_path: str,
+    new_pdf_path: str,
+    pages: str | None = None,
+    tolerance: float = 0.0,
+) -> dict[str, Any]:
+    """Diff two ÇŞB catalog years by poz code: price moves (delta + percent),
+    added and removed pozes, unit changes, and pozes that gained or lost a printed
+    price. `pages` is a 0-based range applied to both PDFs; `tolerance` (in TL)
+    hides small price moves. Returns per-kind counts, the mean price %-change, and
+    the individual changes — the year-over-year rate movement a single catalog
+    can't show."""
+    try:
+        old = parse_catalog(old_pdf_path, pages=_pages(pages))
+        new = parse_catalog(new_pdf_path, pages=_pages(pages))
+    except (FileNotFoundError, ValueError) as exc:
+        return {"error": str(exc)}
+    return diff_pozes(old.pozes, new.pozes, tolerance=tolerance).to_dict()
+
+
+TOOLS = [tool_parse_catalog, tool_diff]
 
 
 def build_server() -> Any:

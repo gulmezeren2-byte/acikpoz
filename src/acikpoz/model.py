@@ -34,8 +34,17 @@ class Poz:
         priced; a normal poz without a printed price is a data gap, not a zero."""
         return self.fiyat is not None
 
+    @property
+    def grup(self) -> str:
+        """Main group code — the first segment of the poz number (e.g. '15' for an
+        İnşaat item, '25' for Sıhhi Tesisat). Lets a caller filter or aggregate by
+        section without a lookup table."""
+        return self.poz_no.split(".", 1)[0]
+
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        d = asdict(self)
+        d["grup"] = self.grup  # a property, so asdict() misses it
+        return d
 
     @classmethod
     def from_dict(cls, d: dict[str, Any]) -> Poz:

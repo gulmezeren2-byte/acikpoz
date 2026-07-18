@@ -62,6 +62,31 @@ class ParseResult:
         rather than hidden."""
         return sum(1 for p in self.pozes if not p.is_priced and not p.is_group_header)
 
+    @property
+    def price_parse_rate(self) -> float | None:
+        """Share of non-header pozes that got a price, in [0, 1]. None when there
+        were no non-header pozes. This is the parser's confidence in a page-set:
+        a low rate means either genuine catalog gaps or a layout the geometry
+        missed — the reader should look, which is the whole point."""
+        denom = len(self.pozes) - self.group_headers
+        return round(self.priced / denom, 4) if denom else None
+
+    @property
+    def grade(self) -> str:
+        """A coarse, glanceable quality grade from the parse rate, the way
+        camelot exposes accuracy and docling a grade. `empty` means nothing to
+        grade; below `good`, review the pages before trusting the output."""
+        rate = self.price_parse_rate
+        if rate is None:
+            return "empty"
+        if rate >= 0.98:
+            return "excellent"
+        if rate >= 0.90:
+            return "good"
+        if rate >= 0.75:
+            return "fair"
+        return "poor"
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "pages_read": self.pages_read,
@@ -71,6 +96,8 @@ class ParseResult:
                 "group_headers": self.group_headers,
                 "price_gaps": self.gaps,
             },
+            "price_parse_rate": self.price_parse_rate,
+            "grade": self.grade,
             "pozes": [p.to_dict() for p in self.pozes],
         }
 

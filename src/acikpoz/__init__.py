@@ -12,6 +12,7 @@ purpose. The parser ships here; the catalog PDFs do not — point it at your own
 
 from importlib.metadata import PackageNotFoundError, version
 
+from acikpoz.diff import CatalogDiff, PozChange, diff_pozes
 from acikpoz.model import Poz
 from acikpoz.parser import ParseResult, parse_catalog, parse_page, parse_words, tl
 
@@ -28,5 +29,8 @@ __all__ = [
     "parse_page",
     "parse_words",
     "tl",
+    "CatalogDiff",
+    "PozChange",
+    "diff_pozes",
     "__version__",
 ]

@@ -55,6 +55,7 @@ Point it at an official catalog PDF you have (acikpoz ships the parser, **not** 
 ```
 acikpoz parse bf2026.pdf --pages 8-20
 acikpoz parse bf2026.pdf --json > pozes.jsonl     # one poz per line, for pipelines
+acikpoz parse bf2026.pdf --group 25               # only Sıhhi Tesisat pozes
 acikpoz parse bf2026.pdf --priced-only            # drop headers and gaps
 ```
 
@@ -66,8 +67,13 @@ poz          birim  fiyat TL   tanım
 15.100.1005  Ton      434,05    1 ton çelik borunun taşıtlara yüklenmesi
 25.110.1000  -             -    ALATURKA HELA TESİSATI:            (group header)
 
-407 priced · 6 group headers · 43 price gaps · 16 page(s) read.
+407 priced · 6 group headers · 43 price gaps · grade good (90% of non-header
+pozes priced) · 16 page(s) read.
 ```
+
+The **grade** (excellent/good/fair/poor) is a glanceable confidence signal, the
+way camelot exposes accuracy: below `good`, review the pages before trusting the
+output. `--json` includes `price_parse_rate` and `grade` per parse.
 
 Or from Python:
 
@@ -95,12 +101,29 @@ print(result.to_dict()["counts"])   # priced / group_headers / price_gaps
 4. **Group headers.** A price-less poz whose description ends in `:` is a category title —
    flagged, not treated as a gap.
 
+## Compare two catalog years
+
+Catalogs are reissued regularly; the question estimators and auditors track by hand is *how
+did this year's rates move from last year's?* `acikpoz diff` answers it — it joins two years
+by poz code and classifies each change:
+
+```
+acikpoz diff bf2025.pdf bf2026.pdf --pages 8-400
+acikpoz diff bf2025.pdf bf2026.pdf --tolerance 1   # hide sub-1-TL rounding noise
+acikpoz diff bf2025.pdf bf2026.pdf --json
+```
+
+It reports price moves (with Δ and %Δ), added and removed pozes, unit changes, and pozes
+that gained or lost a printed price — plus the **mean price %-change** for the year. As far
+as the research found, no other open tool does year-over-year diffing for ÇŞB catalogs.
+
 ## Using acikpoz with AI agents
 
-An MCP server (`pip install 'acikpoz[mcp]'`, then `acikpoz-mcp`) exposes one tool,
-`parse_catalog`: point an agent at a catalog PDF and it gets structured pozes back with the
-honest coverage, not prose it has to parse. Pair it with ihalent and an agent can reason
-across both a tender's result *and* the unit prices it was measured against.
+An MCP server (`pip install 'acikpoz[mcp]'`, then `acikpoz-mcp`) exposes two tools:
+`parse_catalog` (a PDF → structured pozes with honest coverage) and `diff` (two catalog years
+→ classified changes). The agent gets structured data back, not prose it has to parse. Pair
+it with ihalent and an agent can reason across both a tender's result *and* the unit prices
+it was measured against.
 
 ```jsonc
 // e.g. Claude Desktop / Claude Code mcp config

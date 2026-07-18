@@ -20,6 +20,7 @@ from rich.console import Console
 from rich.table import Table
 
 import acikpoz as _acikpoz
+from acikpoz.diff import diff_pozes
 from acikpoz.parser import parse_catalog
 
 app = typer.Typer(
@@ -71,6 +72,9 @@ def parse(
     pages: str = typer.Option(
         None, "--pages", help="0-based page range, e.g. 8-20, or a single index."
     ),
+    group: str = typer.Option(
+        None, "--group", help="Only pozes in this main group, e.g. 25 (Sıhhi Tesisat)."
+    ),
     as_json: bool = typer.Option(False, "--json", help="Emit pozes as JSONL."),
     priced_only: bool = typer.Option(
         False, "--priced-only", help="Only pozes that carry a printed price."
@@ -91,7 +95,11 @@ def parse(
     except ValueError as exc:  # malformed / encrypted / non-PDF file
         _err.print(f"[bold red]error:[/bold red] {exc}")
         raise typer.Exit(2) from exc
-    pozes = [p for p in result.pozes if p.is_priced] if priced_only else result.pozes
+    pozes = result.pozes
+    if group:
+        pozes = [p for p in pozes if p.grup == group]
+    if priced_only:
+        pozes = [p for p in pozes if p.is_priced]
 
     if as_json:
         for p in pozes:
@@ -107,13 +115,72 @@ def parse(
         tanim = p.tanim if len(p.tanim) <= 70 else p.tanim[:69] + "…"
         table.add_row(p.poz_no, p.birim or "-", _fmt_try(p.fiyat), tanim)
     _console.print(table)
+    rate = result.price_parse_rate
+    rate_str = f"{rate:.0%}" if rate is not None else "—"
     _console.print(
         f"[dim]{result.priced} priced · {result.group_headers} group headers · "
-        f"{result.gaps} price gaps · {result.pages_read} page(s) read. "
+        f"{result.gaps} price gaps · grade [b]{result.grade}[/b] ({rate_str} of "
+        f"non-header pozes priced) · {result.pages_read} page(s) read. "
         f"A gap is a poz the catalog printed no price for — surfaced, not invented.[/dim]"
     )
     if len(pozes) > 200:
         _console.print(f"[dim](showing first 200 of {len(pozes)}; use --json for all)[/dim]")
+
+
+@app.command()
+def diff(
+    old_pdf: Path = typer.Argument(..., metavar="OLD.pdf", help="Last year's catalog PDF."),
+    new_pdf: Path = typer.Argument(..., metavar="NEW.pdf", help="This year's catalog PDF."),
+    pages: str = typer.Option(None, "--pages", help="Same 0-based page range applied to both."),
+    tolerance: float = typer.Option(
+        0.0, "--tolerance", help="Hide price moves at or below this many TL."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Emit the diff as JSON."),
+) -> None:
+    """Diff two catalog years by poz code: price moves, added/removed pozes, unit changes."""
+    for pdf in (old_pdf, new_pdf):
+        if not pdf.is_file():
+            _err.print(f"[bold red]error:[/bold red] file not found: {pdf}")
+            raise typer.Exit(2)
+    try:
+        page_range = _parse_pages(pages)
+    except ValueError:
+        _err.print(f"[bold red]error:[/bold red] bad --pages {pages!r} (use e.g. 8-20).")
+        raise typer.Exit(2) from None
+    try:
+        old = parse_catalog(old_pdf, pages=page_range)
+        new = parse_catalog(new_pdf, pages=page_range)
+    except ValueError as exc:
+        _err.print(f"[bold red]error:[/bold red] {exc}")
+        raise typer.Exit(2) from exc
+
+    result = diff_pozes(old.pozes, new.pozes, tolerance=tolerance)
+    if as_json:
+        typer.echo(json.dumps(result.to_dict(), ensure_ascii=True, indent=2))
+        return
+
+    price_changes = [c for c in result.changes if c.kind == "price_change"]
+    if price_changes:
+        table = Table(title="Price changes (poz priced in both years)", title_justify="left")
+        table.add_column("poz")
+        table.add_column("old TL", justify="right")
+        table.add_column("new TL", justify="right")
+        table.add_column("Δ", justify="right")
+        table.add_column("%", justify="right")
+        for c in price_changes[:200]:
+            pct = f"{c.pct:+.1f}%" if c.pct is not None else "-"
+            table.add_row(
+                c.poz_no, _fmt_try(c.old_fiyat), _fmt_try(c.new_fiyat), _fmt_try(c.delta), pct
+            )
+        _console.print(table)
+
+    mp = result.mean_price_pct
+    mp_str = f"{mp:+.2f}%" if mp is not None else "—"
+    _console.print(
+        f"[dim]{result.count('price_change')} price changes (mean {mp_str}) · "
+        f"{result.count('added')} added · {result.count('removed')} removed · "
+        f"{result.count('unit_change')} unit changes · {old_pdf.name} → {new_pdf.name}.[/dim]"
+    )
 
 
 def main() -> None:

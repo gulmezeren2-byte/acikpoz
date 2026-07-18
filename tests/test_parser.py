@@ -126,3 +126,27 @@ def test_parse_result_coverage() -> None:
     assert r.gaps == 1
     d = r.to_dict()
     assert d["counts"] == {"total": 3, "priced": 1, "group_headers": 1, "price_gaps": 1}
+
+
+def test_grade_and_parse_rate() -> None:
+    # 3 priced + 1 header + 1 gap -> non-header 4, priced 3 -> rate 0.75 -> fair
+    r = ParseResult(
+        pozes=[
+            Poz("1", "a", fiyat=10.0),
+            Poz("2", "b", fiyat=20.0),
+            Poz("3", "c", fiyat=30.0),
+            Poz("4", "H:", is_group_header=True),
+            Poz("5", "gap"),
+        ]
+    )
+    assert r.price_parse_rate == 0.75
+    assert r.grade == "fair"
+
+
+def test_grade_edges() -> None:
+    all_priced = ParseResult(pozes=[Poz(str(i), "x", fiyat=1.0) for i in range(20)])
+    assert all_priced.grade == "excellent"
+    assert ParseResult().grade == "empty"  # nothing to grade
+    only_header = ParseResult(pozes=[Poz("1", "H:", is_group_header=True)])
+    assert only_header.price_parse_rate is None
+    assert only_header.grade == "empty"
