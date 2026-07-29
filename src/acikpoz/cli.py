@@ -41,6 +41,22 @@ def _version_callback(value: bool) -> None:
         raise typer.Exit()
 
 
+def _use_utf8_output() -> None:
+    """Make stdout/stderr able to carry the text this tool exists to print.
+
+    Poz descriptions are Turkish — `Lavabo tesisatı`, `(Ölçü: Ad.)` — and on Windows
+    a *piped* stdout gets the legacy code page, where those characters raise
+    UnicodeEncodeError and take the whole command down. `acikpoz parse … | tee`
+    must not crash, so ask for UTF-8 and never fail if the stream won't take it.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        with contextlib.suppress(OSError, ValueError):
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 @app.callback()
 def _root(
     version: bool = typer.Option(
@@ -49,6 +65,7 @@ def _root(
     ),
 ) -> None:
     """acikpoz — parse ÇŞB birim-fiyat catalogs into structured pozes."""
+    _use_utf8_output()
 
 
 def _parse_pages(spec: str | None) -> range | None:

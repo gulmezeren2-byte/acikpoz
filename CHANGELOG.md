@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.1 — 2026-07-29
+
+- **Fixed a crash when output is piped on Windows.** A piped stdout gets the legacy
+  code page rather than UTF-8, and this tool's whole job is printing Turkish — a poz
+  description like `Lavabo tesisatı` or `(Ölçü: Ad.)` raised `UnicodeEncodeError` and
+  took the command down. So `acikpoz parse … | tee out.txt`, and any CI step capturing
+  the log, simply failed on ordinary data. Output streams are now asked for UTF-8, and
+  the guard never fails if a stream won't take it.
+
 ## 0.2.0 — 2026-07-18
 
 - **Validation** (`acikpoz validate`, and a `validate` MCP tool): deterministic
