@@ -175,6 +175,12 @@ say so. The contract is the tests: they encode the exact word geometry a real pa
 including the two-column Sıhhi Tesisat trap and the group-header rule, so green tests mean the
 parser handles the real thing.
 
+## Related
+
+- **[ihalent](https://github.com/gulmezeren2-byte/ihalent)** — the other half of the Turkish public-procurement picture. `acikpoz` reads the unit-price catalogs that say what work *should* cost; `ihalent` reads the tender result notices that say what it *was* awarded for, and at what discount. Same discipline: every figure traceable to its source, nothing invented.
+
+More tools by [Eren Gülmez](https://github.com/gulmezeren2-byte?tab=repositories).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
