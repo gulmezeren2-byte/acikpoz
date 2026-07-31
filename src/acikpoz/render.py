@@ -12,6 +12,9 @@ from __future__ import annotations
 from rich.console import Console
 from rich.table import Table
 
+from acikpoz.parser import ParseResult
+from acikpoz.validate import ValidationReport
+
 _MAX_ROWS = 200
 _MAX_TANIM = 70
 
@@ -23,7 +26,7 @@ def fmt_try(value: float | None) -> str:
     return f"{value:,.2f}".replace(",", "\x00").replace(".", ",").replace("\x00", ".")
 
 
-def render_pozes(result, title: str, console: Console) -> None:
+def render_pozes(result: ParseResult, title: str, console: Console) -> None:
     """The `parse` view: the extracted rows, then how complete the extraction was."""
     pozes = result.pozes
     table = Table(title=f"{title} — {len(pozes)} poz", title_justify="left")
@@ -50,7 +53,7 @@ def render_pozes(result, title: str, console: Console) -> None:
         )
 
 
-def render_validation(report, console: Console) -> None:
+def render_validation(report: ValidationReport, console: Console) -> None:
     """The `validate` view: what the parse is not confident about."""
     if not report.findings:
         console.print(
