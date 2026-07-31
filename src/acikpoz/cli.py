@@ -21,6 +21,7 @@ from rich.console import Console
 from rich.table import Table
 
 import acikpoz as _acikpoz
+from acikpoz import render as _render
 from acikpoz.diff import diff_pozes
 from acikpoz.parser import parse_catalog
 from acikpoz.validate import validate_pozes
@@ -144,25 +145,7 @@ def parse(
             typer.echo(json.dumps(p.to_dict(), ensure_ascii=True))
         return
 
-    table = Table(title=f"{pdf.name} — {len(pozes)} poz", title_justify="left")
-    table.add_column("poz")
-    table.add_column("birim")
-    table.add_column("fiyat TL", justify="right")
-    table.add_column("tanım", overflow="fold")
-    for p in pozes[:200]:
-        tanim = p.tanim if len(p.tanim) <= 70 else p.tanim[:69] + "…"
-        table.add_row(p.poz_no, p.birim or "-", _fmt_try(p.fiyat), tanim)
-    _console.print(table)
-    rate = result.price_parse_rate
-    rate_str = f"{rate:.0%}" if rate is not None else "—"
-    _console.print(
-        f"[dim]{result.priced} priced · {result.group_headers} group headers · "
-        f"{result.gaps} price gaps · grade [b]{result.grade}[/b] ({rate_str} of "
-        f"non-header pozes priced) · {result.pages_read} page(s) read. "
-        f"A gap is a poz the catalog printed no price for — surfaced, not invented.[/dim]"
-    )
-    if len(pozes) > 200:
-        _console.print(f"[dim](showing first 200 of {len(pozes)}; use --json for all)[/dim]")
+    _render.render_pozes(result, pdf.name, _console)
 
 
 @app.command()
@@ -250,22 +233,7 @@ def validate(
         typer.echo(json.dumps(report.to_dict(), ensure_ascii=True, indent=2))
         raise typer.Exit(0 if report.ok else 1)
 
-    if not report.findings:
-        _console.print(f"[green]OK[/green] — {report.checked} poz(es) validated, no issues.")
-        return
-    table = Table(title="Validation findings", title_justify="left")
-    table.add_column("severity")
-    table.add_column("rule")
-    table.add_column("poz")
-    table.add_column("message", overflow="fold")
-    for f in report.findings[:200]:
-        colour = "red" if f.severity == "error" else "yellow"
-        table.add_row(f"[{colour}]{f.severity}[/]", f.rule, f.poz_no, f.message)
-    _console.print(table)
-    _console.print(
-        f"[dim]{report.errors} error(s), {report.warnings} warning(s) "
-        f"over {report.checked} poz(es).[/dim]"
-    )
+    _render.render_validation(report, _console)
     raise typer.Exit(0 if report.ok else 1)
 
 
